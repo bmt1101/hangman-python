@@ -32,15 +32,17 @@ def countdown(time_sec):
     while time_sec and not time_up:
         mins, secs = divmod(time_sec, 60)
         timeformat = '{:02d}:{:02d}'.format(mins, secs)
-        sys.stdout.write(f"\rTime remaining: {timeformat} | Please guess a letter or the whole word: ")
+        sys.stdout.write(f"\rTime remaining: {timeformat} | Guess a letter or the word:     ")
         sys.stdout.flush()
         time.sleep(1)
         time_sec -= 1
 
-    if time_sec == 0 and not time_up:
-        time_up = True
-        sys.stdout.write(f"\rTime's up!               \n")
+        if time_sec == 0 and not time_up:
+            time_up = True
+            break_message = "GAME OVER! Time's up. The word was {word}."
+            sys.stdout.write(f"\r{break_message}               \n")
         sys.stdout.flush()
+        
 
 # Hangman pictures
 HANGMANPICS = [''' 
@@ -144,10 +146,17 @@ def load_game_state():
 def play_game():
     global score, time_up
 
+    # Load game state if it exists
+    game_state = load_game_state()
+    if game_state:
+        score += game_state['score']  # Add previous score to current score
+
     time_up_event = threading.Event()
 
     print("\nLet's play Hangman!")
-    print(f"Your score: {score}")
+    print("Mechanics:\n1. You have to guess the word before the timer runs out or before you run out of attempts.\n2. You can guess a letter or the whole word.")
+    print("\nScoring:\nFor Letter Guess: +1 point\nFor Word Guess: Easy (+10 points), Medium (+15 points), Hard (+20 points)")
+    print(f"\nYour score: {score}")
 
     while True:
         word = None
@@ -189,12 +198,13 @@ def play_game():
                 print("Please enter a valid number.")
 
         word = random.choice(categories[selected_category][difficulty])
-        blank_list = ["_"] * len(word)
+        blank_list = ['_' if char != ' ' else ' ' for char in word]
         update_display = 0
 
         while update_display < 8 and not time_up:
             print(f"\nHint: {selected_category}")
             print(f"Word: {' '.join(blank_list)}")
+            print(f"Your score: {score}")
             print(HANGMANPICS[update_display])
 
             timer_thread = threading.Thread(target=countdown, args=(time_remaining,))
@@ -202,18 +212,22 @@ def play_game():
             timer_thread.start()
 
             guess = input().lower()
-
             if len(guess) == 1 and guess.isalpha():
                 update_display, correct = making_a_guess(word, guess, update_display, blank_list)
                 if correct:
-                    score += 10
+                    score += 1 
                 else:
                     time_remaining -= 3
-            elif len(guess) > 1 and guess.isalpha():
+            elif len(guess) > 1 and guess.replace(' ', '').isalpha():
                 if guess == word:
-                    print(f"\nCongratulations, you've guessed the word correctly!")
-                    score += 50
-                    print(f"\nYOU WIN!")
+                    print(f"\nCONGRATULATIONS! YOU GUESSED THE WORD CORRECTLY!")
+                    if difficulty == "easy":
+                        score += 10
+                    elif difficulty == "medium":
+                        score += 15
+                    elif difficulty == "hard":
+                        score += 20
+                    print(f"HANGMAN IS FREE!")
                     time_up = True
                     break
                 else:
@@ -231,40 +245,18 @@ def play_game():
 
         print(f"Your score: {score}")
 
-        # Ask if they want to play again or save the game
+        # Automatically save the game state after each round
+        save_game_state(word, blank_list, update_display, time_remaining, score, selected_category)
+
+        # Ask if they want to play again
         play_again = input("\nDo you want to play again? (y/n): ").lower()
         if play_again == 'y':
             time_up = False
-            play_game()  # Restart the game
+            continue  # Restart the game loop
         else:
-            save_progress = input("\nDo you want to save your progress? (y/n): ").lower()
-            if save_progress == 'y':
-                save_game_state(word, blank_list, update_display, time_remaining, score, selected_category)
-                print(f"Your Final Score: {score} points")
-                print("Thanks for playing!")
-
-        while True:
-            # Check for saved game
-            resume_game = input("\nDo you want to resume the previous game? (y/n): ").lower()
-            if resume_game == 'y':
-                game_state = load_game_state()
-                if game_state:
-                    word = game_state['word']
-                    blank_list = game_state['blank_list']
-                    update_display = game_state['update_display']
-                    time_remaining = game_state['time_remaining']
-                    score = game_state['score']
-                    selected_category = game_state['selected_category']
-                    print("\nResuming your saved game...")
-                else:
-                    print("\nNo saved game found. Starting a new game.")
-                    word = None
-            else:
-                word = None
-                print("Thanks for playing!")
-
-            if not word:
-                play_game()
+            print(f"Your Final Score: {score} points")
+            print("Thanks for playing!")
+            break
 
 # Start the game
 play_game()

@@ -1,0 +1,21 @@
+import os
+import pickle
+
+# Check if the save file exists
+if os.path.exists('hangman_save.pickle'):
+    with open('hangman_save.pickle', 'rb') as f:
+        try:
+            # Attempt to load the saved game state
+            game_state = pickle.load(f)
+            if isinstance(game_state, dict):
+                print("Saved game state loaded successfully:")
+                for key, value in game_state.items():
+                    print(f"{key}: {value}")
+            else:
+                print("Save file does not contain a valid game state. Starting a new game.")
+        except EOFError:
+            print("Save file is empty. Starting a new game.")
+        except pickle.UnpicklingError:
+            print("Save file is corrupted. Starting a new game.")
+else:
+    print("No save file found. Starting a new game.")
