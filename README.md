@@ -1,7 +1,7 @@
 # hangman-python
 Game Development entitled Hangman using Python File and Compiler
 
-1. Download the file
+1. Download the file "game-development-project"
 2. Download the latest version of Python here: https://www.python.org/downloads/
 3. Run the installer and ensure you check the option "Add Python to PATH" during installation.
 4. Verify the installation in terminal or command prompt and type: python --version
